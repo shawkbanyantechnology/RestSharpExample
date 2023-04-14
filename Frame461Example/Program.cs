@@ -91,47 +91,38 @@ namespace Frame461Example
         public static IEnumerable<BanyanShipment> GetShipmentsRestSharp(string token)
         {
             var shipmentUrl = "https://ws.integration.banyantechnology.com/api/v3/shipments";
+             
 
-            var options = new RestClientOptions()
-            {
-                Authenticator = new JwtAuthenticator(token)
-            };
+            var client = new RestClient();
+            client.Authenticator = new JwtAuthenticator(token);
 
-            using (var client = new RestClient(options))
-            {
-                var request = new RestRequest(shipmentUrl);
-                var response = client.Get(request);
+            var request = new RestRequest(shipmentUrl);
+            var response = client.Get(request);
 
-                if (!response.IsSuccessStatusCode)
-                    return null;
+            return response.IsSuccessful
+                ? JsonConvert.DeserializeObject<IEnumerable<BanyanShipment>>(response.Content)
+                : null;
 
 
-                return response.IsSuccessStatusCode
-                    ? JsonConvert.DeserializeObject<IEnumerable<BanyanShipment>>(response.Content)
-                    : null;
-
-            }
         }
 
 
         public static Token GetEligibilityTokenRestSharp()
         {
             var tokenUrl = "https://ws.integration.banyantechnology.com/auth/connect/token";
-             
-            using (var client = new RestClient())
-            {
-                var request = new RestRequest(tokenUrl)
-                    .AddParameter("grant_type", "client_credentials")
-                    .AddParameter("client_id", "your client id")
-                    .AddParameter("client_secret", "your secret");
 
-                var response = client.Post(request);
+            var client = new RestClient();
 
-                return response.IsSuccessStatusCode
-                    ? JsonConvert.DeserializeObject<Token>(response.Content)
-                    : null;
-            }
+            var request = new RestRequest(tokenUrl)
+                .AddParameter("grant_type", "client_credentials")
+                .AddParameter("client_id", "your client id")
+                .AddParameter("client_secret", "your secret");
 
+            var response = client.Post(request);
+
+            return response.IsSuccessful
+                ? JsonConvert.DeserializeObject<Token>(response.Content)
+                : null;
 
         }
 
