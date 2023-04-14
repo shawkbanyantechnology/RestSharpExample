@@ -3,16 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using RestSharp;
+using RestSharp.Authenticators;
 
 namespace Frame461Example
 {
     internal class Program
     {
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
-            var token = await GetEligibilityToken();
+            //var token = await GetEligibilityToken();
+            var token = GetEligibilityTokenRestSharp();
+
 
             if (!string.IsNullOrWhiteSpace(token?.access_token))
             {
@@ -20,12 +25,20 @@ namespace Frame461Example
                 Console.WriteLine($"");
                 Console.WriteLine($"Shipments: ");
 
-                var shipments = await GetShipments(token.access_token);
+                //var shipments = await GetShipments(token.access_token);
+
+                //foreach (var shipment in shipments)
+                //{
+                //    Console.WriteLine(shipment.ToString());
+                //}
+
+                var shipments = GetShipmentsRestSharp(token.access_token);
 
                 foreach (var shipment in shipments)
                 {
                     Console.WriteLine(shipment.ToString());
                 }
+
             }
 
             Console.ReadLine();
@@ -37,9 +50,9 @@ namespace Frame461Example
 
             var form = new Dictionary<string, string>()
             {
-                {"grant_type","client_credentials"},
-                {"client_id","your client id"},
-                {"client_secret","your client secret"}
+                {"grant_type", "client_credentials"},
+                {"client_id", "your client id"},
+                {"client_secret", "your secret"}
             };
 
             using (var client = new HttpClient())
@@ -74,6 +87,54 @@ namespace Frame461Example
                 return shipments;
             }
         }
+
+        public static IEnumerable<BanyanShipment> GetShipmentsRestSharp(string token)
+        {
+            var shipmentUrl = "https://ws.integration.banyantechnology.com/api/v3/shipments";
+
+            var options = new RestClientOptions()
+            {
+                Authenticator = new JwtAuthenticator(token)
+            };
+
+            using (var client = new RestClient(options))
+            {
+                var request = new RestRequest(shipmentUrl);
+                var response = client.Get(request);
+
+                if (!response.IsSuccessStatusCode)
+                    return null;
+
+
+                return response.IsSuccessStatusCode
+                    ? JsonConvert.DeserializeObject<IEnumerable<BanyanShipment>>(response.Content)
+                    : null;
+
+            }
+        }
+
+
+        public static Token GetEligibilityTokenRestSharp()
+        {
+            var tokenUrl = "https://ws.integration.banyantechnology.com/auth/connect/token";
+             
+            using (var client = new RestClient())
+            {
+                var request = new RestRequest(tokenUrl)
+                    .AddParameter("grant_type", "client_credentials")
+                    .AddParameter("client_id", "your client id")
+                    .AddParameter("client_secret", "your secret");
+
+                var response = client.Post(request);
+
+                return response.IsSuccessStatusCode
+                    ? JsonConvert.DeserializeObject<Token>(response.Content)
+                    : null;
+            }
+
+
+        }
+
     }
 
 
